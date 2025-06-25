@@ -1,0 +1,32 @@
+name: Daily Dynatrace Report Email
+
+on:
+  schedule:
+    - cron: '30 18 * * *'  # Runs every day at 12:00 AM IST (18:30 UTC)
+  workflow_dispatch:       # Manual trigger support
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install pandas openpyxl requests
+
+      - name: Run report script
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+          EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python test.py
