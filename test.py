@@ -70,17 +70,23 @@ df.to_excel(excel_file, index=False)
 
 # Send Email with attachment
 msg = EmailMessage()
-msg["Subject"] = "Daily Dynatrace Metrics Report"
+msg["Subject"] = "Dynatrace Daily Metrics Report"
 msg["From"] = EMAIL_USER
 msg["To"] = TO_EMAIL
-msg.set_content("Please find the attached Dynatrace report.")
+msg.set_content("Hi,\n\nPlease find attached the latest Dynatrace metrics report.\n\nRegards,\nAutomated Bot")
 
-with open(excel_file, "rb") as f:
+# Attach the Excel file
+with open("dynatrace_metrics.xlsx", "rb") as f:
     file_data = f.read()
-    msg.add_attachment(file_data, maintype="application", subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=excel_file)
+    msg.add_attachment(file_data, maintype="application", subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="dynatrace_metrics.xlsx")
 
-with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as smtp:
-    smtp.login(EMAIL_USER, EMAIL_PASS)
-    smtp.send_message(msg)
-
-print("✅ Report sent via email.")
+# Send the email
+try:
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
+        smtp.starttls()
+        smtp.login(EMAIL_USER, EMAIL_PASS)
+        smtp.send_message(msg)
+    print("✅ Email sent successfully.")
+except Exception as e:
+    print("❌ Failed to send email.")
+    print("Error:", e)
