@@ -1,0 +1,9 @@
+# Ignore config file with sensitive credentials
+config.ini
+
+# Ignore output Excel files
+dynatrace_metrics.xlsx
+
+# Python cache folders
+__pycache__/
+*.pyc
