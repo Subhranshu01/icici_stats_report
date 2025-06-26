@@ -33,6 +33,11 @@ jobs:
         run: |
           git fetch origin reports
           git checkout origin/reports -- dynatrace_metrics.xlsx || echo "⚠️ No previous workbook — starting fresh"
+      - name: Check contents after checkout
+        run: ls -lh dynatrace_metrics.xlsx || echo "❌ Workbook not found"
+        
+ 
+
 
       - name: Run your script
         env:
