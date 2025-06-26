@@ -2,7 +2,7 @@ name: Send Daily Dynatrace Report
 
 on:
   schedule:
-    - cron: '35 18 * * *'  # runs daily at 12:05AM IST
+    - cron: '35 18 * * *'  # runs daily at 12:05 AM IST
   workflow_dispatch:
 
 jobs:
@@ -12,6 +12,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Download previous workbook
+        uses: actions/download-artifact@v4
+        with:
+          name: dynatrace-workbook
+          path: .
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,3 +38,9 @@ jobs:
           LOGINCONTROLLER_URL: ${{ secrets.LOGINCONTROLLER_URL }}
           MOTORINSURANCE_URL: ${{ secrets.MOTORINSURANCE_URL }}
         run: python test.py
+
+      - name: Upload updated workbook
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynatrace-workbook
+          path: dynatrace_metrics.xlsx
