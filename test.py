@@ -1,7 +1,6 @@
 import os
 import requests
 import pandas as pd
-import configparser
 from datetime import datetime, timedelta
 from openpyxl import load_workbook
 import smtplib
@@ -9,23 +8,6 @@ from email.message import EmailMessage
 
 # File names
 FILE_NAME = "dynatrace_metrics.xlsx"
-MARKER_FILE = "last_month_marker.txt"
-
-# 📌 Automatically clear the workbook if it's a new month
-def clear_excel_if_new_month(file_name):
-    current_month = datetime.now().strftime("%Y-%m")
-    last_month = ""
-
-    if os.path.exists(file_name):
-        if os.path.exists(MARKER_FILE):
-            with open(MARKER_FILE, "r") as f:
-                last_month = f.read().strip()
-        if last_month != current_month:
-            print("🧹 New month detected. Deleting existing workbook.")
-            os.remove(file_name)
-    # Update the marker for current run
-    with open(MARKER_FILE, "w") as f:
-        f.write(current_month)
 
 # 📊 Fetch Dynatrace metrics and update sheet
 def fetch_and_store_metrics(controller_name, url, api_token):
@@ -83,28 +65,31 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         })
 
     df = pd.DataFrame(records)
+    update_workbook(sheet_name, df)
 
-    try:
-        if os.path.exists(FILE_NAME):
-            with pd.ExcelFile(FILE_NAME, engine="openpyxl") as xls:
-                existing_sheets = xls.sheet_names
-                existing_df = pd.read_excel(xls, sheet_name=sheet_name) if sheet_name in existing_sheets else pd.DataFrame()
-            combined_df = pd.concat([df, existing_df], ignore_index=True)
-        else:
-            combined_df = df
-    except Exception as e:
-        print("⚠️ Workbook might be invalid. Recreating it.")
-        os.remove(FILE_NAME)
-        combined_df = df
+# 📘 Combine data into Excel, preserving all sheets
+def update_workbook(sheet_name, df_new):
+    all_sheets = {}
 
-    try:
-        writer = pd.ExcelWriter(FILE_NAME, engine="openpyxl", mode="a", if_sheet_exists="replace")
-    except FileNotFoundError:
-        writer = pd.ExcelWriter(FILE_NAME, engine="openpyxl", mode="w")
+    if os.path.exists(FILE_NAME):
+        with pd.ExcelFile(FILE_NAME, engine="openpyxl") as xls:
+            for name in xls.sheet_names:
+                try:
+                    all_sheets[name] = pd.read_excel(xls, sheet_name=name)
+                except Exception:
+                    all_sheets[name] = pd.DataFrame()
+        print(f"📄 Existing sheets loaded: {list(all_sheets.keys())}")
+    else:
+        print("🆕 No existing workbook found. Creating new one.")
 
-    combined_df.to_excel(writer, sheet_name=sheet_name, index=False)
-    writer.close()
-    print(f"✅ Sheet '{sheet_name}' updated with latest data.")
+    existing_df = all_sheets.get(sheet_name, pd.DataFrame())
+    combined_df = pd.concat([df_new, existing_df], ignore_index=True)
+    all_sheets[sheet_name] = combined_df
+
+    with pd.ExcelWriter(FILE_NAME, engine="openpyxl", mode="w") as writer:
+        for name, df in all_sheets.items():
+            df.to_excel(writer, sheet_name=name, index=False)
+    print(f"✅ Sheet '{sheet_name}' updated with new data.")
 
 # 📧 Send Excel workbook via email
 def send_email_report():
@@ -115,7 +100,7 @@ def send_email_report():
     TO_EMAIL = os.environ["EMAIL_TO"]
 
     msg = EmailMessage()
-    msg["Subject"] = "📊 Dynatrace Monthly Metrics Report"
+    msg["Subject"] = "📊 Dynatrace Metrics Report"
     msg["From"] = EMAIL_USER
     msg["To"] = TO_EMAIL
     msg.set_content("Hi,\n\nAttached is the updated Dynatrace workbook.\n\nRegards,\nBot")
@@ -135,21 +120,15 @@ def send_email_report():
             smtp.send_message(msg)
         print("📤 Email sent successfully.")
     except Exception as e:
-        print("❌ Failed to send email:", e)
+        print("❌ Email sending failed:", e)
 
 # 🏁 Entry point
 if __name__ == "__main__":
-    # 🧹 Reset workbook at new month
-    clear_excel_if_new_month(FILE_NAME)
-
-    # 🔑 Secrets
     API_TOKEN = os.environ["API_TOKEN"]
     LoginController_url = os.environ["LOGINCONTROLLER_URL"]
     MotorInsurance_url = os.environ["MOTORINSURANCE_URL"]
 
-    # 📊 Update data
     fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
     fetch_and_store_metrics("MotorInsurance", MotorInsurance_url, API_TOKEN)
 
-    # 📧 Email workbook
     send_email_report()
