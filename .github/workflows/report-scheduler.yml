@@ -15,18 +15,10 @@ jobs:
         with:
           ref: reports
 
-<<<<<<< HEAD
-      - name: Download previous workbook
-        uses: actions/download-artifact@v4
-        with:
-          name: dynatrace-workbook
-          path: .
-=======
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
->>>>>>> fed6971 (updatedL)
 
       - name: Set up Python
         uses: actions/setup-python@v5
