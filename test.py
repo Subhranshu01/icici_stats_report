@@ -123,5 +123,5 @@ if __name__ == "__main__":
     MotorInsurance_url = os.environ["MOTORINSURANCE_URL"]
 
     fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
-    fetch_and_store_metrics("LoanController", MotorInsurance_url, API_TOKEN)
+    fetch_and_store_metrics("MotorInsurance", MotorInsurance_url, API_TOKEN)
     send_email_report()
