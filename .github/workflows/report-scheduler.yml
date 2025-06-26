@@ -31,4 +31,4 @@ jobs:
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           LOGINCONTROLLER_URL: ${{ secrets.LOGINCONTROLLER_URL }}
           MOTORINSURANCE_URL: ${{ secrets.MOTORINSURANCE_URL }}
-        run: python dynatrace_report.py
+        run: python test.py
