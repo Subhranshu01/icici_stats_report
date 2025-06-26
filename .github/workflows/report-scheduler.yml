@@ -2,7 +2,7 @@ name: Send Daily Dynatrace Report
 
 on:
   schedule:
-    - cron: '35 18 * * *'  # runs daily at 12:05 AM IST
+    - cron: '35 18 * * *'  # Runs daily at 12:05 AM IST
   workflow_dispatch:
 
 jobs:
@@ -10,14 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout reports branch
         uses: actions/checkout@v3
+        with:
+          ref: reports
 
+<<<<<<< HEAD
       - name: Download previous workbook
         uses: actions/download-artifact@v4
         with:
           name: dynatrace-workbook
           path: .
+=======
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+>>>>>>> fed6971 (updatedL)
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: pip install pandas openpyxl requests
 
-      - name: Run dynatrace report
+      - name: Run Dynatrace report script
         env:
           API_TOKEN: ${{ secrets.API_TOKEN }}
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
@@ -37,10 +46,10 @@ jobs:
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           LOGINCONTROLLER_URL: ${{ secrets.LOGINCONTROLLER_URL }}
           MOTORINSURANCE_URL: ${{ secrets.MOTORINSURANCE_URL }}
-        run: python test.py
+        run: python dynatrace_report.py
 
-      - name: Upload updated workbook
-        uses: actions/upload-artifact@v4
-        with:
-          name: dynatrace-workbook
-          path: dynatrace_metrics.xlsx
+      - name: Commit updated workbook
+        run: |
+          git add dynatrace_metrics.xlsx
+          git commit -m "📊 Update metrics workbook for $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git push origin reports
