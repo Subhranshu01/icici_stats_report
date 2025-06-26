@@ -145,11 +145,11 @@ if __name__ == "__main__":
     # 🔑 Secrets
     API_TOKEN = os.environ["API_TOKEN"]
     LoginController_url = os.environ["LOGINCONTROLLER_URL"]
-    LoanController_url = os.environ["LOANCONTROLLER_URL"]
+    MotorInsurance_url = os.environ["MOTORINSURANCE_URL"]
 
     # 📊 Update data
     fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
-    fetch_and_store_metrics("LoanController", LoanController_url, API_TOKEN)
+    fetch_and_store_metrics("MotorInsurance", MotorInsurance_url, API_TOKEN)
 
     # 📧 Email workbook
     send_email_report()
