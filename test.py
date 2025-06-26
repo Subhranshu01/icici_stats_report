@@ -7,10 +7,27 @@ from openpyxl import load_workbook
 import smtplib
 from email.message import EmailMessage
 
-
+# File names
 FILE_NAME = "dynatrace_metrics.xlsx"
+MARKER_FILE = "last_month_marker.txt"
 
-# Fetch metrics and update Excel
+# 📌 Automatically clear the workbook if it's a new month
+def clear_excel_if_new_month(file_name):
+    current_month = datetime.now().strftime("%Y-%m")
+    last_month = ""
+
+    if os.path.exists(file_name):
+        if os.path.exists(MARKER_FILE):
+            with open(MARKER_FILE, "r") as f:
+                last_month = f.read().strip()
+        if last_month != current_month:
+            print("🧹 New month detected. Deleting existing workbook.")
+            os.remove(file_name)
+    # Update the marker for current run
+    with open(MARKER_FILE, "w") as f:
+        f.write(current_month)
+
+# 📊 Fetch Dynatrace metrics and update sheet
 def fetch_and_store_metrics(controller_name, url, api_token):
     yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     sheet_name = controller_name.lower()
@@ -75,8 +92,8 @@ def fetch_and_store_metrics(controller_name, url, api_token):
             combined_df = pd.concat([df, existing_df], ignore_index=True)
         else:
             combined_df = df
-    except Exception:
-        print("⚠️ Corrupted workbook. Recreating it.")
+    except Exception as e:
+        print("⚠️ Workbook might be invalid. Recreating it.")
         os.remove(FILE_NAME)
         combined_df = df
 
@@ -87,9 +104,9 @@ def fetch_and_store_metrics(controller_name, url, api_token):
 
     combined_df.to_excel(writer, sheet_name=sheet_name, index=False)
     writer.close()
-    print(f"✅ Sheet '{sheet_name}' updated.")
+    print(f"✅ Sheet '{sheet_name}' updated with latest data.")
 
-# Send email with Excel file
+# 📧 Send Excel workbook via email
 def send_email_report():
     EMAIL_USER = os.environ["EMAIL_USER"]
     EMAIL_PASS = os.environ["EMAIL_PASS"]
@@ -98,30 +115,41 @@ def send_email_report():
     TO_EMAIL = os.environ["EMAIL_TO"]
 
     msg = EmailMessage()
-    msg["Subject"] = "📊 Dynatrace Daily Metrics Report"
+    msg["Subject"] = "📊 Dynatrace Monthly Metrics Report"
     msg["From"] = EMAIL_USER
     msg["To"] = TO_EMAIL
-    msg.set_content("Hi,\n\nPlease find attached the latest Dynatrace metrics workbook.\n\nRegards,\nAutomated Bot")
+    msg.set_content("Hi,\n\nAttached is the updated Dynatrace workbook.\n\nRegards,\nBot")
 
     with open(FILE_NAME, "rb") as f:
-        file_data = f.read()
-        msg.add_attachment(file_data, maintype="application", subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=FILE_NAME)
+        msg.add_attachment(
+            f.read(),
+            maintype="application",
+            subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            filename=FILE_NAME
+        )
 
     try:
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
             smtp.starttls()
             smtp.login(EMAIL_USER, EMAIL_PASS)
             smtp.send_message(msg)
-        print("📧 Email sent successfully.")
+        print("📤 Email sent successfully.")
     except Exception as e:
-        print("❌ Email failed:", e)
+        print("❌ Failed to send email:", e)
 
-# 🔄 Run job
+# 🏁 Entry point
 if __name__ == "__main__":
+    # 🧹 Reset workbook at new month
+    clear_excel_if_new_month(FILE_NAME)
+
+    # 🔑 Secrets
     API_TOKEN = os.environ["API_TOKEN"]
     LoginController_url = os.environ["LOGINCONTROLLER_URL"]
-    MotorInsurance_url = os.environ["MOTORINSURANCE_URL"]
+    LoanController_url = os.environ["LOANCONTROLLER_URL"]
 
+    # 📊 Update data
     fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
-    fetch_and_store_metrics("MotorInsurance", MotorInsurance_url, API_TOKEN)
+    fetch_and_store_metrics("LoanController", LoanController_url, API_TOKEN)
+
+    # 📧 Email workbook
     send_email_report()
