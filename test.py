@@ -1,92 +1,127 @@
 import os
 import requests
 import pandas as pd
+import configparser
+from datetime import datetime, timedelta
+from openpyxl import load_workbook
 import smtplib
 from email.message import EmailMessage
 
-# Read credentials from environment variables
-API_TOKEN = os.environ["API_TOKEN"]
-EMAIL_USER = os.environ["EMAIL_USER"]
-EMAIL_PASS = os.environ["EMAIL_PASS"]
-SMTP_SERVER = os.environ["EMAIL_HOST"]
-SMTP_PORT = int(os.environ["EMAIL_PORT"])
-TO_EMAIL = os.environ["EMAIL_TO"]  # ✅ fixed
 
-# URL is hardcoded
-url = 'https://abcdapm.adityabirlacapital.com/e/aae1eca1-1d7c-4a0b-a10c-257b60cfe008/api/v2/metrics/query?metricSelector=(builtin:service.keyRequest.count.total:filter(or(in("dt.entity.service_method",entitySelector("type(service_method),fromRelationship.isServiceMethodOfService(type(SERVICE),entityName.equals(~"LoginController~"))")))):splitBy("dt.entity.service_method"):sort(value(auto,descending))):names,(builtin:service.keyRequest.errors.server.count:filter(or(in("dt.entity.service_method",entitySelector("type(service_method),fromRelationship.isServiceMethodOfService(type(SERVICE),entityName.equals(~"LoginController~"))")))):splitBy("dt.entity.service_method"):sort(value(auto,descending))):names,(builtin:service.keyRequest.response.server:filter(or(in("dt.entity.service_method",entitySelector("type(service_method),fromRelationship.isServiceMethodOfService(type(SERVICE),entityName.equals(~"LoginController~"))")))):splitBy("dt.entity.service_method"):avg:sort(value(avg,descending))):names,(builtin:service.keyRequest.response.server:filter(or(in("dt.entity.service_method",entitySelector("type(service_method),fromRelationship.isServiceMethodOfService(type(SERVICE),entityName.equals(~"LoginController~"))")))):splitBy("dt.entity.service_method"):percentile(90.0):sort(value(percentile(90.0),descending))):names,(builtin:service.keyRequest.response.server:filter(or(in("dt.entity.service_method",entitySelector("type(service_method),fromRelationship.isServiceMethodOfService(type(SERVICE),entityName.equals(~"LoginController~"))")))):splitBy("dt.entity.service_method"):percentile(95.0):sort(value(percentile(95.0),descending))):names,(builtin:service.keyRequest.response.server:filter(or(in("dt.entity.service_method",entitySelector("type(service_method),fromRelationship.isServiceMethodOfService(type(SERVICE),entityName.equals(~"LoginController~"))")))):splitBy("dt.entity.service_method"):percentile(99.0):sort(value(percentile(99.0),descending))):names,(builtin:service.keyRequest.errors.server.rate:filter(or(in("dt.entity.service_method",entitySelector("type(service_method),fromRelationship.isServiceMethodOfService(type(SERVICE),entityName.equals(~"LoginController~"))")))):splitBy("dt.entity.service_method"):sort(value(auto,descending))):names&from=-1d/d&to=now/d&resolution=Inf&mzSelector=mzId(-2729326265202688410)'
+FILE_NAME = "dynatrace_metrics.xlsx"
 
-headers = {
-    "Authorization": f"Api-Token {API_TOKEN}",
-    "accept": "application/json"
-}
-response = requests.get(url, headers=headers)
-print("Status Code:", response.status_code)
-if response.status_code != 200:
-    print("Error:", response.text)
-    exit()
+# Fetch metrics and update Excel
+def fetch_and_store_metrics(controller_name, url, api_token):
+    yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    sheet_name = controller_name.lower()
 
-json_data = response.json()
-result = json_data.get("result", [])
+    headers = {
+        "Authorization": f"Api-Token {api_token}",
+        "accept": "application/json"
+    }
+    response = requests.get(url, headers=headers)
+    print(f"📡 {controller_name}: Status Code {response.status_code}")
+    if response.status_code != 200:
+        print("❌ Error:", response.text)
+        return
 
-data_dict = {}
-for metric in result:
-    metric_id = metric["metricId"]
-    for entry in metric["data"]:
-        method_name = entry["dimensionMap"]["dt.entity.service_method.name"]
-        value = entry["values"][0]
-        if method_name not in data_dict:
-            data_dict[method_name] = {}
-        if "count.total" in metric_id:
-            data_dict[method_name]["total_hits"] = int(value)
-        elif "errors.server.count" in metric_id:
-            data_dict[method_name]["failure_count"] = int(value)
-        elif ":avg" in metric_id:
-            data_dict[method_name]["avg"] = round(value / 1000000, 2)
-        elif "percentile(90.0)" in metric_id:
-            data_dict[method_name]["p90"] = round(value / 1000000, 2)
-        elif "percentile(95.0)" in metric_id:
-            data_dict[method_name]["p95"] = round(value / 1000000, 2)
-        elif "percentile(99.0)" in metric_id:
-            data_dict[method_name]["p99"] = round(value / 1000000, 2)
-        elif "errors.server.rate" in metric_id:
-            data_dict[method_name]["failure_rate"] = round(value, 2)
+    json_data = response.json()
+    result = json_data.get("result", [])
+    data_dict = {}
 
-records = []
-for method, values in data_dict.items():
-    records.append({
-        "request": method,
-        "total hits": values.get("total_hits", 0),
-        "failure count": values.get("failure_count", 0),
-        "average": values.get("avg", 0),
-        "p90": values.get("p90", 0),
-        "p95": values.get("p95", 0),
-        "p99": values.get("p99", 0),
-        "failure rate": values.get("failure_rate", 0)
-    })
+    for metric in result:
+        metric_id = metric["metricId"]
+        for entry in metric["data"]:
+            method_name = entry["dimensionMap"]["dt.entity.service_method.name"]
+            value = entry["values"][0]
+            if method_name not in data_dict:
+                data_dict[method_name] = {}
+            if "count.total" in metric_id:
+                data_dict[method_name]["total_hits"] = int(value)
+            elif "errors.server.count" in metric_id:
+                data_dict[method_name]["failure_count"] = int(value)
+            elif ":avg" in metric_id:
+                data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
+            elif "percentile(90.0)" in metric_id:
+                data_dict[method_name]["p90"] = round(value / 1_000_000, 2)
+            elif "percentile(95.0)" in metric_id:
+                data_dict[method_name]["p95"] = round(value / 1_000_000, 2)
+            elif "percentile(99.0)" in metric_id:
+                data_dict[method_name]["p99"] = round(value / 1_000_000, 2)
+            elif "errors.server.rate" in metric_id:
+                data_dict[method_name]["failure_rate"] = round(value, 2)
 
-df = pd.DataFrame(records)
-excel_file = "dynatrace_metrics.xlsx"
-df.to_excel(excel_file, index=False)
+    records = []
+    for method, values in data_dict.items():
+        records.append({
+            "Date": yesterday_str,
+            "request": method,
+            "total hits": values.get("total_hits", 0),
+            "failure count": values.get("failure_count", 0),
+            "average": values.get("avg", 0),
+            "p90": values.get("p90", 0),
+            "p95": values.get("p95", 0),
+            "p99": values.get("p99", 0),
+            "failure rate": values.get("failure_rate", 0)
+        })
 
-# Send Email with attachment
-msg = EmailMessage()
-msg["Subject"] = "Dynatrace Daily Metrics Report"
-msg["From"] = EMAIL_USER
-msg["To"] = TO_EMAIL
-msg.set_content("Hi,\n\nPlease find attached the latest Dynatrace metrics report.\n\nRegards,\nAutomated Bot")
+    df = pd.DataFrame(records)
 
-# Attach the Excel file
-with open("dynatrace_metrics.xlsx", "rb") as f:
-    file_data = f.read()
-    msg.add_attachment(file_data, maintype="application", subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="dynatrace_metrics.xlsx")
+    try:
+        if os.path.exists(FILE_NAME):
+            with pd.ExcelFile(FILE_NAME, engine="openpyxl") as xls:
+                existing_sheets = xls.sheet_names
+                existing_df = pd.read_excel(xls, sheet_name=sheet_name) if sheet_name in existing_sheets else pd.DataFrame()
+            combined_df = pd.concat([df, existing_df], ignore_index=True)
+        else:
+            combined_df = df
+    except Exception:
+        print("⚠️ Corrupted workbook. Recreating it.")
+        os.remove(FILE_NAME)
+        combined_df = df
 
-# Send the email
-try:
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
-        smtp.starttls()
-        smtp.login(EMAIL_USER, EMAIL_PASS)
-        smtp.send_message(msg)
-    print("✅ Email sent successfully.")
-except Exception as e:
-    print("❌ Failed to send email.")
-    print("Error:", e)
+    try:
+        writer = pd.ExcelWriter(FILE_NAME, engine="openpyxl", mode="a", if_sheet_exists="replace")
+    except FileNotFoundError:
+        writer = pd.ExcelWriter(FILE_NAME, engine="openpyxl", mode="w")
+
+    combined_df.to_excel(writer, sheet_name=sheet_name, index=False)
+    writer.close()
+    print(f"✅ Sheet '{sheet_name}' updated.")
+
+# Send email with Excel file
+def send_email_report():
+    EMAIL_USER = os.environ["EMAIL_USER"]
+    EMAIL_PASS = os.environ["EMAIL_PASS"]
+    SMTP_SERVER = os.environ["EMAIL_HOST"]
+    SMTP_PORT = int(os.environ["EMAIL_PORT"])
+    TO_EMAIL = os.environ["EMAIL_TO"]
+
+    msg = EmailMessage()
+    msg["Subject"] = "📊 Dynatrace Daily Metrics Report"
+    msg["From"] = EMAIL_USER
+    msg["To"] = TO_EMAIL
+    msg.set_content("Hi,\n\nPlease find attached the latest Dynatrace metrics workbook.\n\nRegards,\nAutomated Bot")
+
+    with open(FILE_NAME, "rb") as f:
+        file_data = f.read()
+        msg.add_attachment(file_data, maintype="application", subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=FILE_NAME)
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as smtp:
+            smtp.starttls()
+            smtp.login(EMAIL_USER, EMAIL_PASS)
+            smtp.send_message(msg)
+        print("📧 Email sent successfully.")
+    except Exception as e:
+        print("❌ Email failed:", e)
+
+# 🔄 Run job
+if __name__ == "__main__":
+    API_TOKEN = os.environ["API_TOKEN"]
+    LoginController_url = os.environ["LOGINCONTROLLER_URL"]
+    MotorInsurance_url = os.environ["MOTORINSURANCE_URL"]
+
+    fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
+    fetch_and_store_metrics("LoanController", MotorInsurance_url, API_TOKEN)
+    send_email_report()
