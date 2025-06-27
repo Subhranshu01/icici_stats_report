@@ -131,8 +131,41 @@ if __name__ == "__main__":
     API_TOKEN = os.environ["API_TOKEN"]
     LoginController_url = os.environ["LOGINCONTROLLER_URL"]
     MotorInsurance_url = os.environ["MOTORINSURANCE_URL"]
+    CreditTrack_url = os.environ["CREDITTRACK_URL"]
+    Digigold&silver_url = os.environ["DIGIGOLD_URL"]
+    HealthInsurance_url = os.environ["HEALTHINSURANCE_URL"]
+    LrRewards_url = os.environ["LRREWARDS_URL"]
+    PersonalLoan_url = os.environ["PERSONALLOAN_URL"]
+    MutualFund_url = os.environ["MUTUALFUND_URL"]
+    FixedDeposit_url = os.environ["FIXEDDEPOSIT_URL"]
+    BusinessLoanController_url = os.environ["BLOAN_URL"]
+    TermInsuranceBuyController_url = os.environ["TERM_URL"]
+    Stocks_url = os.environ["STOCKS_URL"]
+    GoldLoanController_url = os.environ["GOLD_URL"]
+    HomeLoan_url = os.environ["HOMELOAN_URL"]
+    PortfolioTrack_url = os.environ["PORTFOLIO_URL"]
+    SpendTrack_url = os.environ["SPENDTRACK_URL"]
+
+    
 
     fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
     fetch_and_store_metrics("MotorInsurance", MotorInsurance_url, API_TOKEN)
+    fetch_and_store_metrics("CreditTrack", CreditTrack_url, API_TOKEN)
+    fetch_and_store_metrics("DigiGold & Silver", Digigold&silver_url, API_TOKEN)
+    fetch_and_store_metrics("HealthInsurance", HealthInsurance_url, API_TOKEN)
+    fetch_and_store_metrics("LR Rewards", LrRewards_url, API_TOKEN)
+    fetch_and_store_metrics("Personal Loan", PersonalLoan_url, API_TOKEN)
+    fetch_and_store_metrics("MutualFund", MutualFund_url, API_TOKEN)
+    fetch_and_store_metrics("Fixed Deposit", FixedDeposit_url, API_TOKEN)
+    fetch_and_store_metrics("BusinessLoanController", BusinessLoanController_url, API_TOKEN)
+    fetch_and_store_metrics("TermInsuranceBuyController(LI)", TermInsuranceBuyController_url, API_TOKEN)
+    fetch_and_store_metrics("Stocks", Stocks_url, API_TOKEN)
+    fetch_and_store_metrics("GoldLoanController", GoldLoanController_url, API_TOKEN)
+    fetch_and_store_metrics("Home Loan", HomeLoan_url, API_TOKEN)
+    fetch_and_store_metrics("PortfolioTrack", PortfolioTrack_url, API_TOKEN)
+    fetch_and_store_metrics("SpendTrack", SpendTrack_url, API_TOKEN)
+
+
+    
 
     send_email_report()
