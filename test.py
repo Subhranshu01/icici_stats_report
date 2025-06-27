@@ -4,14 +4,18 @@ import pandas as pd
 from datetime import datetime, timedelta
 from openpyxl import load_workbook
 import smtplib
+from datetime import datetime, timedelta
+import pytz
 from email.message import EmailMessage
 
+india_tz = pytz.timezone("Asia/Kolkata")
+now_ist = datetime.now(india_tz)
 # File names
 FILE_NAME = "dynatrace_metrics.xlsx"
 
 # 📊 Fetch Dynatrace metrics and update sheet
 def fetch_and_store_metrics(controller_name, url, api_token):
-    yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    yesterday_str = (now_ist - timedelta(days=1)).strftime("%Y-%m-%d")
     sheet_name = controller_name.lower()
 
     headers = {
