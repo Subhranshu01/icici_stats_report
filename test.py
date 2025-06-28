@@ -132,7 +132,7 @@ if __name__ == "__main__":
     LoginController_url = os.environ["LOGINCONTROLLER_URL"]
     MotorInsurance_url = os.environ["MOTORINSURANCE_URL"]
     CreditTrack_url = os.environ["CREDITTRACK_URL"]
-    Digigold&silver_url = os.environ["DIGIGOLD_URL"]
+    Digigold_url = os.environ["DIGIGOLD_URL"]
     HealthInsurance_url = os.environ["HEALTHINSURANCE_URL"]
     LrRewards_url = os.environ["LRREWARDS_URL"]
     PersonalLoan_url = os.environ["PERSONALLOAN_URL"]
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
     fetch_and_store_metrics("MotorInsurance", MotorInsurance_url, API_TOKEN)
     fetch_and_store_metrics("CreditTrack", CreditTrack_url, API_TOKEN)
-    fetch_and_store_metrics("DigiGold & Silver", Digigold&silver_url, API_TOKEN)
+    fetch_and_store_metrics("DigiGold & Silver", Digigold_url, API_TOKEN)
     fetch_and_store_metrics("HealthInsurance", HealthInsurance_url, API_TOKEN)
     fetch_and_store_metrics("LR Rewards", LrRewards_url, API_TOKEN)
     fetch_and_store_metrics("Personal Loan", PersonalLoan_url, API_TOKEN)
