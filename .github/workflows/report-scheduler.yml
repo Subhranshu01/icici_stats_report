@@ -49,6 +49,21 @@ jobs:
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           LOGINCONTROLLER_URL: ${{ secrets.LOGINCONTROLLER_URL }}
           MOTORINSURANCE_URL: ${{ secrets.MOTORINSURANCE_URL }}
+          CREDITTRACK_URL: ${{ secrets.CREDITTRACK_URL }}
+          DIGIGOLD_URL: ${{ secrets.DIGIGOLD_URL }}
+          HEALTHINSURANCE_URL: ${{ secrets.HEALTHINSURANCE_URL }}
+          LRREWARDS_URL: ${{ secrets.LRREWARDS_URL }}
+          PERSONALLOAN_URL: ${{ secrets.PERSONALLOAN_URL }}
+          MUTUALFUND_URL: ${{ secrets.MUTUALFUND_URL }}
+          FIXEDDEPOSIT_URL: ${{ secrets.FIXEDDEPOSIT_URL }}
+          BLOAN_URL: ${{ secrets.BLOAN_URL }}
+          TERM_URL: ${{ secrets.TERM_URL }}
+          STOCKS_URL: ${{ secrets.STOCKS_URL }}
+          GOLD_URL: ${{ secrets.GOLD_URL }}
+          HOMELOAN_URL: ${{ secrets.HOMELOAN_URL }}
+          PORTFOLIO_URL: ${{ secrets.PORTFOLIO_URL }}
+          SPENDTRACK_URL: ${{ secrets.SPENDTRACK_URL }}
+          
         run: python test.py  # or python dynatrace_report.py
 
       - name: Commit updated workbook to reports branch
