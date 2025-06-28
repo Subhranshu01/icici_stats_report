@@ -148,22 +148,22 @@ if __name__ == "__main__":
 
     
 
-    fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
-    fetch_and_store_metrics("MotorInsurance", MotorInsurance_url, API_TOKEN)
-    fetch_and_store_metrics("CreditTrack", CreditTrack_url, API_TOKEN)
+    fetch_and_store_metrics("Login Controller", LoginController_url, API_TOKEN)
+    fetch_and_store_metrics("Motor Insurance", MotorInsurance_url, API_TOKEN)
+    fetch_and_store_metrics("Credit Track", CreditTrack_url, API_TOKEN)
     fetch_and_store_metrics("DigiGold & Silver", Digigold_url, API_TOKEN)
-    fetch_and_store_metrics("HealthInsurance", HealthInsurance_url, API_TOKEN)
+    fetch_and_store_metrics("Health Insurance", HealthInsurance_url, API_TOKEN)
     fetch_and_store_metrics("LR Rewards", LrRewards_url, API_TOKEN)
     fetch_and_store_metrics("Personal Loan", PersonalLoan_url, API_TOKEN)
-    fetch_and_store_metrics("MutualFund", MutualFund_url, API_TOKEN)
+    fetch_and_store_metrics("Mutual Fund", MutualFund_url, API_TOKEN)
     fetch_and_store_metrics("Fixed Deposit", FixedDeposit_url, API_TOKEN)
-    fetch_and_store_metrics("BusinessLoanController", BusinessLoanController_url, API_TOKEN)
-    fetch_and_store_metrics("TermInsuranceBuyController(LI)", TermInsuranceBuyController_url, API_TOKEN)
+    fetch_and_store_metrics("BusinessLoan Controller", BusinessLoanController_url, API_TOKEN)
+    fetch_and_store_metrics("TermInsuranceBuy Controller(LI)", TermInsuranceBuyController_url, API_TOKEN)
     fetch_and_store_metrics("Stocks", Stocks_url, API_TOKEN)
-    fetch_and_store_metrics("GoldLoanController", GoldLoanController_url, API_TOKEN)
+    fetch_and_store_metrics("GoldLoan Controller", GoldLoanController_url, API_TOKEN)
     fetch_and_store_metrics("Home Loan", HomeLoan_url, API_TOKEN)
-    fetch_and_store_metrics("PortfolioTrack", PortfolioTrack_url, API_TOKEN)
-    fetch_and_store_metrics("SpendTrack", SpendTrack_url, API_TOKEN)
+    fetch_and_store_metrics("Portfolio Track", PortfolioTrack_url, API_TOKEN)
+    fetch_and_store_metrics("Spend Track", SpendTrack_url, API_TOKEN)
 
 
     
