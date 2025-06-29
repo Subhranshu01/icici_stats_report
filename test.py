@@ -12,7 +12,7 @@ from email.message import EmailMessage
 india_tz = pytz.timezone("Asia/Kolkata")
 now_ist = datetime.now(india_tz)
 # File names
-FILE_NAME = "Product Category wise Internal APIs Performance Report(june).xlsx"
+FILE_NAME = "Product Category wise Internal APIs Performance Report.xlsx"
 
 
 
