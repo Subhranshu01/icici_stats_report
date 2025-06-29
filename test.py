@@ -7,11 +7,49 @@ import smtplib
 from datetime import datetime, timedelta
 import pytz
 from email.message import EmailMessage
+from openpyxl.styles import Alignment, Font
 
 india_tz = pytz.timezone("Asia/Kolkata")
 now_ist = datetime.now(india_tz)
 # File names
 FILE_NAME = "dynatrace_metrics.xlsx"
+
+
+def format_excel_sheet(filename, sheet_name):
+    wb = load_workbook(filename)
+    if sheet_name not in wb.sheetnames:
+        print(f"⚠️ Sheet '{sheet_name}' not found.")
+        return
+
+    ws = wb[sheet_name]
+    headers = [cell.value for cell in ws[1]]
+
+    # Format data cells (skip header)
+    for row in ws.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(
+                wrap_text=True,
+                horizontal='center',
+                vertical='center'
+            )
+
+    # Format header row
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(
+            wrap_text=True,
+            horizontal='center',
+            vertical='center'
+        )
+
+    # Auto-adjust column widths
+    for col in ws.columns:
+        max_length = max(len(str(cell.value)) if cell.value else 0 for cell in col)
+        col_letter = col[0].column_letter
+        ws.column_dimensions[col_letter].width = max(12, min(max_length + 4, 40))
+
+    wb.save(filename)
+    print(f"✨ Sheet '{sheet_name}' formatted for readability.")
 
 # 📊 Fetch Dynatrace metrics and update sheet
 def fetch_and_store_metrics(controller_name, url, api_token):
@@ -94,6 +132,7 @@ def update_workbook(sheet_name, df_new):
         for name, df in all_sheets.items():
             df.to_excel(writer, sheet_name=name, index=False)
     print(f"✅ Sheet '{sheet_name}' updated with new data.")
+    format_excel_sheet(FILE_NAME, sheet_name)
 
 # 📧 Send Excel workbook via email
 def send_email_report():
