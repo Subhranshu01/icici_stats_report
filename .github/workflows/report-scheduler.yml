@@ -69,6 +69,6 @@ jobs:
       - name: Commit updated workbook to reports branch
         run: |
           git checkout -b reports
-          git add Product Category wise Internal APIs Performance Report.xlsx
+          git add "Product Category wise Internal APIs Performance Report.xlsx"
           git commit -m "📊 Update workbook for $(date +'%Y-%m-%d')" || echo "Nothing to commit"
           git push origin reports --force
