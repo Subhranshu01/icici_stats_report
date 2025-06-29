@@ -32,9 +32,9 @@ jobs:
       - name: Restore reports branch workbook
         run: |
           git fetch origin reports
-          git checkout origin/reports -- dynatrace_metrics.xlsx || echo "⚠️ No previous workbook — starting fresh"
+          git checkout origin/reports -- Product Category wise Internal APIs Performance Report(june).xlsx || echo "⚠️ No previous workbook — starting fresh"
       - name: Check contents after checkout
-        run: ls -lh dynatrace_metrics.xlsx || echo "❌ Workbook not found"
+        run: ls -lh Product Category wise Internal APIs Performance Report(june).xlsx || echo "❌ Workbook not found"
         
  
 
@@ -69,6 +69,6 @@ jobs:
       - name: Commit updated workbook to reports branch
         run: |
           git checkout -b reports
-          git add dynatrace_metrics.xlsx
+          git add Product Category wise Internal APIs Performance Report(june).xlsx
           git commit -m "📊 Update workbook for $(date +'%Y-%m-%d')" || echo "Nothing to commit"
           git push origin reports --force
