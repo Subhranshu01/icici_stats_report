@@ -97,7 +97,7 @@ def update_workbook(sheet_name, df_new):
         for name, df in all_sheets.items():
             df.to_excel(writer, sheet_name=name, index=False)
     print(f"✅ Sheet '{sheet_name}' updated with new data.")
-    format_excel_sheet(FILE_NAME, sheet_name)
+    
 
 # 📧 Send Excel workbook via email
 def send_email_report():
