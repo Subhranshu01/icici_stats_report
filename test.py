@@ -7,12 +7,35 @@ import smtplib
 from datetime import datetime, timedelta
 import pytz
 from email.message import EmailMessage
-
+from openpyxl.styles import Alignment
 
 india_tz = pytz.timezone("Asia/Kolkata")
 now_ist = datetime.now(india_tz)
 # File names
 FILE_NAME = "Product Category wise Internal APIs Performance Report.xlsx"
+
+
+def apply_formatting(file_path):
+    wb = load_workbook(file_path)
+
+    for sheet in wb.worksheets:
+        # Apply center alignment
+        for row in sheet.iter_rows():
+            for cell in row:
+                if cell.value is not None:
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
+
+        # Auto-fit columns based on content width
+        for col in sheet.columns:
+            max_length = max(
+                (len(str(cell.value)) if cell.value else 0) for cell in col
+            )
+            adjusted_width = max_length + 2
+            col_letter = col[0].column_letter
+            sheet.column_dimensions[col_letter].width = adjusted_width
+
+    wb.save(file_path)
+    print("🎨 Formatting applied to all sheets.")
 
 
 
@@ -169,7 +192,5 @@ if __name__ == "__main__":
     fetch_and_store_metrics("PortfolioTrack", PortfolioTrack_url, API_TOKEN)
     fetch_and_store_metrics("SpendTrack", SpendTrack_url, API_TOKEN)
 
-
-    
-
+    apply_formatting(FILE_NAME)
     send_email_report()
