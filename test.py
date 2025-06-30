@@ -134,7 +134,7 @@ def send_email_report():
     msg["Subject"] = "📊 Dynatrace Metrics Report"
     msg["From"] = EMAIL_USER
     msg["To"] = TO_EMAIL
-    msg.set_content("Hi,\n\nAttached is the updated Dynatrace workbook.\n\nRegards,\nBot")
+    msg.set_content("Hi,\n\nAttached is the updated Product Category wise Internal APIs Performance Report .\n\nRegards,\nSubhranshu")
 
     with open(FILE_NAME, "rb") as f:
         msg.add_attachment(
