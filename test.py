@@ -7,7 +7,7 @@ import smtplib
 from datetime import datetime, timedelta
 import pytz
 from email.message import EmailMessage
-from openpyxl.styles import Alignment
+from openpyxl.styles import Alignment, PatternFill
 
 india_tz = pytz.timezone("Asia/Kolkata")
 now_ist = datetime.now(india_tz)
@@ -15,28 +15,47 @@ now_ist = datetime.now(india_tz)
 FILE_NAME = "Product Category wise Internal APIs Performance Report.xlsx"
 
 
+
 def apply_formatting(file_path):
+    red_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
     wb = load_workbook(file_path)
 
     for sheet in wb.worksheets:
-        # Apply center alignment
-        for row in sheet.iter_rows():
+        # Map headers to column indices
+        header_row = next(sheet.iter_rows(min_row=1, max_row=1))
+        col_map = {cell.value: cell.column for cell in header_row}
+
+        for row in sheet.iter_rows(min_row=2):  # Skip header
             for cell in row:
                 if cell.value is not None:
+                    # Apply center alignment
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
 
-        # Auto-fit columns based on content width
+            # 🔴 Apply highlighting based on thresholds
+            # p90
+            cell_p90 = row[col_map.get("p90") - 1]
+            if isinstance(cell_p90.value, (int, float)) and cell_p90.value > 3:
+                cell_p90.fill = red_fill
+
+            # p95
+            cell_p95 = row[col_map.get("p95") - 1]
+            if isinstance(cell_p95.value, (int, float)) and cell_p95.value > 3:
+                cell_p95.fill = red_fill
+
+            # failure rate
+            cell_fr = row[col_map.get("failure rate") - 1]
+            if isinstance(cell_fr.value, (int, float)) and cell_fr.value > 10:
+                cell_fr.fill = red_fill
+
+        # 📏 Auto-fit column widths
         for col in sheet.columns:
-            max_length = max(
-                (len(str(cell.value)) if cell.value else 0) for cell in col
-            )
+            max_length = max((len(str(cell.value)) if cell.value else 0) for cell in col)
             adjusted_width = max_length + 2
             col_letter = col[0].column_letter
             sheet.column_dimensions[col_letter].width = adjusted_width
 
     wb.save(file_path)
-    print("🎨 Formatting applied to all sheets.")
-
+    print("🎨 Formatting + 🔴 highlights applied to all sheets.")
 
 
 # 📊 Fetch Dynatrace metrics and update sheet
