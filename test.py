@@ -17,7 +17,7 @@ FILE_NAME = "Product Category wise Internal APIs Performance Report.xlsx"
 
 
 def apply_formatting(file_path):
-    red_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+    red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
     wb = load_workbook(file_path)
 
     for sheet in wb.worksheets:
