@@ -73,7 +73,7 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         print("❌ Error:", response.text)
         return
 
-    json_data = response.json()
+json_data = response.json()
 result = json_data.get("result", [])
 data_dict = {}
 
