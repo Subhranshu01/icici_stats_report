@@ -87,13 +87,12 @@ def fetch_and_store_metrics(controller_name, url, api_token):
     for metric in result:
         metric_id = metric["metricId"]
         for entry in metric["data"]:
-            method_name = (
-                entry["dimensionMap"].get("dt.entity.service_method.name") if not is_new
-                else entry["dimensionMap"].get("Dimension")
-                method_name = method_name.strip() if method_name else "unknown"
-            )
-            
-            
+           if not is_new:
+               method_name = entry["dimensionMap"].get("dt.entity.service_method.name")
+           else:
+               method_name = entry["dimensionMap"].get("Dimension")
+               method_name = method_name.strip() if method_name else "unknown"
+        
             value = entry["values"][0]
 
             if is_new:
