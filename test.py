@@ -103,6 +103,7 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         for entry in metric["data"]:
             method_name = entry["dimensionMap"]["dt.entity.service_method.name"]
             value = entry["values"][0]
+            print(f"📛 Metric ID: {metric_id} → Method: {method_name} → Value: {value}")
             if method_name not in data_dict:
                 data_dict[method_name] = {}
             
@@ -110,7 +111,7 @@ def fetch_and_store_metrics(controller_name, url, api_token):
                 data_dict[method_name]["total_hits"] = int(value)
             elif "errors.server.count" in metric_id or "failed_req" in metric_id:
                 data_dict[method_name]["failure_count"] = int(value)
-            elif ":avg" in metric_id:
+            elif ":avg" in metric_id or "avg_responsetime" in metric_id:
                 data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
             elif "percentile(90.0)" in metric_id:
                 data_dict[method_name]["p90"] = round(value / 1_000_000, 2)
