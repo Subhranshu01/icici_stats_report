@@ -4,56 +4,68 @@ import pandas as pd
 from datetime import datetime, timedelta
 from openpyxl import load_workbook
 import smtplib
-from datetime import datetime, timedelta
 import pytz
 from email.message import EmailMessage
 from openpyxl.styles import Alignment, PatternFill
 
 india_tz = pytz.timezone("Asia/Kolkata")
 now_ist = datetime.now(india_tz)
-# File names
 FILE_NAME = "Product Category wise Internal APIs Performance Report.xlsx"
 
+DEBUG = os.environ.get("DEBUG", "0") == "1"
 
 def is_new_api_response(json_data):
     return any(
-        "Dimension" in entry.get("dimensionMap", {})
+        "Dimension" in entry.get("dimensionMap", {}) or "dimension" in entry.get("dimensionMap", {})
         for metric in json_data.get("result", [])
         for entry in metric.get("data", [])
     )
+
+def _assign_field(dct, method, key, new_value):
+    """Assign new_value to dct[method][key] without overwriting a non-zero existing value with zero.
+    Always overwrite None or missing. Print debug if enabled.
+    """
+    existing = dct[method].get(key)
+    # if existing is not None and existing != 0 and new_value == 0 --> skip overwrite
+    if existing is not None and existing != 0 and (new_value == 0 or new_value == 0.0):
+        if DEBUG:
+            print(f"⚠️ skip overwrite {method}.{key}: existing={existing} new={new_value}")
+        return
+    dct[method][key] = new_value
+    if DEBUG:
+        print(f"✅ set {method}.{key} = {new_value}")
 
 def apply_formatting(file_path):
     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
     wb = load_workbook(file_path)
 
     for sheet in wb.worksheets:
-        # Map headers to column indices
         header_row = next(sheet.iter_rows(min_row=1, max_row=1))
         col_map = {cell.value: cell.column for cell in header_row}
 
-        for row in sheet.iter_rows(min_row=2):  # Skip header
+        for row in sheet.iter_rows(min_row=2):
             for cell in row:
                 if cell.value is not None:
-                    # Apply center alignment
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
 
-            # 🔴 Apply highlighting based on thresholds
             # p90
-            cell_p90 = row[col_map.get("p90") - 1]
-            if isinstance(cell_p90.value, (int, float)) and cell_p90.value > 3:
-                cell_p90.fill = red_fill
+            if col_map.get("p90"):
+                cell_p90 = row[col_map.get("p90") - 1]
+                if isinstance(cell_p90.value, (int, float)) and cell_p90.value > 3:
+                    cell_p90.fill = red_fill
 
             # p95
-            cell_p95 = row[col_map.get("p95") - 1]
-            if isinstance(cell_p95.value, (int, float)) and cell_p95.value > 3:
-                cell_p95.fill = red_fill
+            if col_map.get("p95"):
+                cell_p95 = row[col_map.get("p95") - 1]
+                if isinstance(cell_p95.value, (int, float)) and cell_p95.value > 3:
+                    cell_p95.fill = red_fill
 
             # failure rate
-            cell_fr = row[col_map.get("failure rate") - 1]
-            if isinstance(cell_fr.value, (int, float)) and cell_fr.value > 10:
-                cell_fr.fill = red_fill
+            if col_map.get("failure rate"):
+                cell_fr = row[col_map.get("failure rate") - 1]
+                if isinstance(cell_fr.value, (int, float)) and cell_fr.value > 10:
+                    cell_fr.fill = red_fill
 
-        # 📏 Auto-fit column widths
         for col in sheet.columns:
             max_length = max((len(str(cell.value)) if cell.value else 0) for cell in col)
             adjusted_width = max_length + 2
@@ -63,8 +75,6 @@ def apply_formatting(file_path):
     wb.save(file_path)
     print("🎨 Formatting + 🔴 highlights applied to all sheets.")
 
-
-# 📊 Fetch Dynatrace metrics and update sheet
 def fetch_and_store_metrics(controller_name, url, api_token):
     yesterday_str = (now_ist - timedelta(days=1)).strftime("%Y-%m-%d")
     sheet_name = controller_name
@@ -73,7 +83,13 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         "Authorization": f"Api-Token {api_token}",
         "accept": "application/json"
     }
-    response = requests.get(url, headers=headers)
+
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+    except Exception as e:
+        print(f"📡 {controller_name}: Request failed:", e)
+        return
+
     print(f"📡 {controller_name}: Status Code {response.status_code}")
     if response.status_code != 200:
         print("❌ Error:", response.text)
@@ -81,33 +97,98 @@ def fetch_and_store_metrics(controller_name, url, api_token):
 
     json_data = response.json()
     is_new = is_new_api_response(json_data)
+    if DEBUG:
+        print(f"🧪 is_new={is_new} for {controller_name}")
+
     result = json_data.get("result", [])
     data_dict = {}
 
     for metric in result:
-        metric_id = metric["metricId"]
-        for entry in metric["data"]:
-           if not is_new:
-               method_name = entry["dimensionMap"].get("dt.entity.service_method.name")
-           else:
-               method_name = entry["dimensionMap"].get("Dimension")
-               method_name = method_name.strip() if method_name else "unknown"
-            value = entry["values"][0]
+        metric_id = metric.get("metricId", "")
+        for entry in metric.get("data", []):
+            dim_map = entry.get("dimensionMap", {}) or {}
+            # choose method name based on schema
             if is_new:
-                if metric_id.startswith("calc:service.portfoliotrackcontroller_total_count"):
-                    data_dict[method_name]["total_hits"] = int(value)
-                elif metric_id.startswith("calc:service.portfoliotrackcontroller_failed_req"):
-                    data_dict[method_name]["failure_count"] = int(value)
-                elif metric_id.startswith("calc:service.portfoliotrackcontroller_avg_responsetime"):
-                    data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
+                method_name = dim_map.get("Dimension") or dim_map.get("dimension")
             else:
-                if "count.total" in metric_id:
-                    data_dict[method_name]["total_hits"] = int(value)
+                method_name = dim_map.get("dt.entity.service_method.name") or dim_map.get("dt.entity.service_method") or None
+
+            if method_name:
+                method_name = str(method_name).strip()
+            else:
+                # fallback: pick first value from dimensionMap if available
+                if dim_map:
+                    first_val = next(iter(dim_map.values()))
+                    method_name = str(first_val).strip()
+                else:
+                    method_name = "unknown"
+
+            values_list = entry.get("values", []) or []
+            value = values_list[0] if values_list else 0
+
+            if DEBUG:
+                print(f"📛 Metric ID: {metric_id} → Method: {method_name} → Value: {value}")
+
+            if method_name not in data_dict:
+                data_dict[method_name] = {}
+
+            # New API detection branch: use substrings that appear in new metricId values
+            if is_new:
+                # total hits
+                if "portfoliotrackcontroller_total_count" in metric_id or "total_count" in metric_id:
+                    _assign_field(data_dict, method_name, "total_hits", int(value))
+                    continue
+                # failure count
+                if "failed_req" in metric_id or "failed" in metric_id or "errors.server.count" in metric_id:
+                    _assign_field(data_dict, method_name, "failure_count", int(value))
+                    continue
+                # avg response time (Dynatrace sometimes reports in microseconds)
+                if "avg_responsetime" in metric_id or ":avg" in metric_id or ":avg:" in metric_id:
+                    _assign_field(data_dict, method_name, "avg", round(value / 1_000_000, 2))
+                    continue
+                # percentiles
+                if "percentile(90.0)" in metric_id or "p90" in metric_id:
+                    _assign_field(data_dict, method_name, "p90", round(value / 1_000_000, 2))
+                    continue
+                if "percentile(95.0)" in metric_id or "p95" in metric_id:
+                    _assign_field(data_dict, method_name, "p95", round(value / 1_000_000, 2))
+                    continue
+                if "percentile(99.0)" in metric_id or "p99" in metric_id:
+                    _assign_field(data_dict, method_name, "p99", round(value / 1_000_000, 2))
+                    continue
+                # failure rate
+                if "errors.server.rate" in metric_id or "failure_rate" in metric_id:
+                    _assign_field(data_dict, method_name, "failure_rate", round(value, 2))
+                    continue
+
+                # fallback: try generic patterns also used by old API
+                if "total_count" in metric_id or "count.total" in metric_id:
+                    _assign_field(data_dict, method_name, "total_hits", int(value))
                 elif "errors.server.count" in metric_id:
-                    data_dict[method_name]["failure_count"] = int(value)
+                    _assign_field(data_dict, method_name, "failure_count", int(value))
                 elif ":avg" in metric_id:
-                    data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
-                    
+                    _assign_field(data_dict, method_name, "avg", round(value / 1_000_000, 2))
+            else:
+                # Old API branch
+                if "count.total" in metric_id or "total_count" in metric_id:
+                    _assign_field(data_dict, method_name, "total_hits", int(value))
+                elif "errors.server.count" in metric_id:
+                    _assign_field(data_dict, method_name, "failure_count", int(value))
+                elif ":avg" in metric_id or "avg_responsetime" in metric_id:
+                    _assign_field(data_dict, method_name, "avg", round(value / 1_000_000, 2))
+                elif "percentile(90.0)" in metric_id:
+                    _assign_field(data_dict, method_name, "p90", round(value / 1_000_000, 2))
+                elif "percentile(95.0)" in metric_id:
+                    _assign_field(data_dict, method_name, "p95", round(value / 1_000_000, 2))
+                elif "percentile(99.0)" in metric_id:
+                    _assign_field(data_dict, method_name, "p99", round(value / 1_000_000, 2))
+                elif "errors.server.rate" in metric_id:
+                    _assign_field(data_dict, method_name, "failure_rate", round(value, 2))
+
+    if DEBUG:
+        print(f"\n📦 Final data_dict for {controller_name}:")
+        for method, vals in data_dict.items():
+            print(f"🔍 {method} → {vals}")
 
     records = []
     for method, values in data_dict.items():
@@ -126,7 +207,6 @@ def fetch_and_store_metrics(controller_name, url, api_token):
     df = pd.DataFrame(records)
     update_workbook(sheet_name, df)
 
-# 📘 Combine data into Excel, preserving all sheets
 def update_workbook(sheet_name, df_new):
     all_sheets = {}
 
@@ -149,9 +229,7 @@ def update_workbook(sheet_name, df_new):
         for name, df in all_sheets.items():
             df.to_excel(writer, sheet_name=name, index=False)
     print(f"✅ Sheet '{sheet_name}' updated with new data.")
-    
 
-# 📧 Send Excel workbook via email
 def send_email_report():
     EMAIL_USER = os.environ["EMAIL_USER"]
     EMAIL_PASS = os.environ["EMAIL_PASS"]
@@ -163,7 +241,7 @@ def send_email_report():
     msg["Subject"] = "📊 Dynatrace Metrics Report"
     msg["From"] = EMAIL_USER
     msg["To"] = TO_EMAIL
-    msg.set_content("Hi,\n\nAttached is the updated Product Category wise Internal APIs Performance Report .\n\nRegards,\nSubhranshu")
+    msg.set_content("Hi,\n\nAttached is the updated Product Category wise Internal APIs Performance Report.\n\nRegards,\nSubhranshu")
 
     with open(FILE_NAME, "rb") as f:
         msg.add_attachment(
@@ -182,44 +260,32 @@ def send_email_report():
     except Exception as e:
         print("❌ Email sending failed:", e)
 
-# 🏁 Entry point
 if __name__ == "__main__":
     API_TOKEN = os.environ["API_TOKEN"]
-    LoginController_url = os.environ["LOGINCONTROLLER_URL"]
-    MotorInsurance_url = os.environ["MOTORINSURANCE_URL"]
-    CreditTrack_url = os.environ["CREDITTRACK_URL"]
-    Digigold_url = os.environ["DIGIGOLD_URL"]
-    HealthInsurance_url = os.environ["HEALTHINSURANCE_URL"]
-    LrRewards_url = os.environ["LRREWARDS_URL"]
-    PersonalLoan_url = os.environ["PERSONALLOAN_URL"]
-    MutualFund_url = os.environ["MUTUALFUND_URL"]
-    FixedDeposit_url = os.environ["FIXEDDEPOSIT_URL"]
-    BusinessLoanController_url = os.environ["BLOAN_URL"]
-    TermInsuranceBuyController_url = os.environ["TERM_URL"]
-    Stocks_url = os.environ["STOCKS_URL"]
-    GoldLoanController_url = os.environ["GOLD_URL"]
-    HomeLoan_url = os.environ["HOMELOAN_URL"]
-    PortfolioTrack_url = os.environ["PORTFOLIO_URL"]
-    SpendTrack_url = os.environ["SPENDTRACK_URL"]
+    controller_urls = {
+        "LoginController": os.environ.get("LOGINCONTROLLER_URL"),
+        "MotorInsurance": os.environ.get("MOTORINSURANCE_URL"),
+        "CreditTrack": os.environ.get("CREDITTRACK_URL"),
+        "DigiGold & Silver": os.environ.get("DIGIGOLD_URL"),
+        "HealthInsurance": os.environ.get("HEALTHINSURANCE_URL"),
+        "LR Rewards": os.environ.get("LRREWARDS_URL"),
+        "Personal Loan": os.environ.get("PERSONALLOAN_URL"),
+        "MutualFund": os.environ.get("MUTUALFUND_URL"),
+        "Fixed Deposit": os.environ.get("FIXEDDEPOSIT_URL"),
+        "BusinessLoanController": os.environ.get("BLOAN_URL"),
+        "TermInsuranceBuyController(LI)": os.environ.get("TERM_URL"),
+        "Stocks": os.environ.get("STOCKS_URL"),
+        "GoldLoanController": os.environ.get("GOLD_URL"),
+        "Home Loan": os.environ.get("HOMELOAN_URL"),
+        "PortfolioTrack": os.environ.get("PORTFOLIO_URL"),
+        "SpendTrack": os.environ.get("SPENDTRACK_URL"),
+    }
 
-    
-
-    fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
-    fetch_and_store_metrics("MotorInsurance", MotorInsurance_url, API_TOKEN)
-    fetch_and_store_metrics("CreditTrack", CreditTrack_url, API_TOKEN)
-    fetch_and_store_metrics("DigiGold & Silver", Digigold_url, API_TOKEN)
-    fetch_and_store_metrics("HealthInsurance", HealthInsurance_url, API_TOKEN)
-    fetch_and_store_metrics("LR Rewards", LrRewards_url, API_TOKEN)
-    fetch_and_store_metrics("Personal Loan", PersonalLoan_url, API_TOKEN)
-    fetch_and_store_metrics("MutualFund", MutualFund_url, API_TOKEN)
-    fetch_and_store_metrics("Fixed Deposit", FixedDeposit_url, API_TOKEN)
-    fetch_and_store_metrics("BusinessLoanController", BusinessLoanController_url, API_TOKEN)
-    fetch_and_store_metrics("TermInsuranceBuyController(LI)", TermInsuranceBuyController_url, API_TOKEN)
-    fetch_and_store_metrics("Stocks", Stocks_url, API_TOKEN)
-    fetch_and_store_metrics("GoldLoanController", GoldLoanController_url, API_TOKEN)
-    fetch_and_store_metrics("Home Loan", HomeLoan_url, API_TOKEN)
-    fetch_and_store_metrics("PortfolioTrack", PortfolioTrack_url, API_TOKEN)
-    fetch_and_store_metrics("SpendTrack", SpendTrack_url, API_TOKEN)
+    for name, url in controller_urls.items():
+        if not url:
+            print(f"⚠️ Skipping {name}: URL not set in environment")
+            continue
+        fetch_and_store_metrics(name, url, API_TOKEN)
 
     apply_formatting(FILE_NAME)
     send_email_report()
