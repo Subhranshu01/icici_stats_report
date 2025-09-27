@@ -143,14 +143,14 @@ def fetch_and_store_metrics(controller_name, url, api_token):
                     _assign_field(data_dict, method_name, "failure_count", int(value))
                     continue
                 # avg response time (Dynatrace sometimes reports in microseconds)
-                if "avg_responsetime" in metric_id or ":avg" in metric_id or ":avg:" in metric_id:
+                if "calc:service.portfoliotrackcontroller_avg_responsetime:splitBy(Dimension):sort(value(auto,descending))):names" in metric_id :
                     _assign_field(data_dict, method_name, "avg", round(value / 1_000_000, 2))
                     continue
                 # percentiles
-                if "percentile(90.0)" in metric_id or "p90" in metric_id:
+                if "(calc:service.portfoliotrackcontroller_avg_responsetime:splitBy(Dimension):percentile(90.0):sort(value(percentile(90.0)" in metric_id :
                     _assign_field(data_dict, method_name, "p90", round(value / 1_000_000, 2))
                     continue
-                if "percentile(95.0)" in metric_id or "p95" in metric_id:
+                if "(calc:service.portfoliotrackcontroller_avg_responsetime:splitBy(Dimension):percentile(95.0):sort(value(percentile(95.0)" in metric_id :
                     _assign_field(data_dict, method_name, "p95", round(value / 1_000_000, 2))
                     continue
                 if "percentile(99.0)" in metric_id or "p99" in metric_id:
