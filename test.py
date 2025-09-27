@@ -78,7 +78,7 @@ def fetch_and_store_metrics(controller_name, url, api_token):
             value = entry.get("values", [0])[0]
             print(f"📛 Method: {method_name} | Value: {value}")
             if method_name not in data_dict:
-                data_dict[method_name] = {}
+                data_dict.setdefault(method_name, {})
 
             if "count.total" in metric_id or "total_count" in metric_id:
                 data_dict[method_name]["total_hits"] = int(value)
