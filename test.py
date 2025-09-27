@@ -92,8 +92,9 @@ def fetch_and_store_metrics(controller_name, url, api_token):
 
     json_data = response.json()
     if is_new_api_response(json_data):
-    print(f"🧪 Detected new API schema for {controller_name}, normalizing...")
-    json_data = normalize_new_api_response(json_data)
+        print(f"🧪 Detected new API schema for {controller_name}, normalizing...")
+        json_data = normalize_new_api_response(json_data)
+        
     result = json_data.get("result", [])
     data_dict = {}
 
