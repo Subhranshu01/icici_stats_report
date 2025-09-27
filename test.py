@@ -104,8 +104,9 @@ def fetch_and_store_metrics(controller_name, url, api_token):
             print(f"⚠️ total_hits missing for {method}, defaulting to 0")
         if "failure_count" not in values:
             print(f"⚠️ failure_count missing for {method}, defaulting to 0")
-         if "avg" not in values:
-             print(f"⚠️ average missing for {method}, defaulting to 0")
+        if "avg" not in values:
+            print(f"⚠️ average missing for {method}, defaulting to 0")
+        
         records.append({
             "Date": yesterday_str,
             "request": method,
