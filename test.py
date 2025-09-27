@@ -120,6 +120,8 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         })
 
     df = pd.DataFrame(records)
+    print("📊 Final DataFrame:")
+    print(df.head())
     update_workbook(sheet_name, df)
 
 def update_workbook(sheet_name, df_new):
