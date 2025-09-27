@@ -15,23 +15,12 @@ now_ist = datetime.now(india_tz)
 FILE_NAME = "Product Category wise Internal APIs Performance Report.xlsx"
 
 
-def normalize_new_api_response(json_data):
-    for metric in json_data.get("result", []):
-        for entry in metric.get("data", []):
-            dim_map = entry.get("dimensionMap", {})
-            if "Dimension" in dim_map:
-                method_name = dim_map["Dimension"]
-                dim_map["dt.entity.service_method.name"] = method_name
-                entry["dimensionMap"] = dim_map
-    return json_data
-    
 def is_new_api_response(json_data):
     return any(
         "Dimension" in entry.get("dimensionMap", {})
         for metric in json_data.get("result", [])
         for entry in metric.get("data", [])
     )
-
 
 def apply_formatting(file_path):
     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
@@ -91,42 +80,38 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         return
 
     json_data = response.json()
-    if is_new_api_response(json_data):
-        print(f"🧪 Detected new API schema for {controller_name}, normalizing...")
-        json_data = normalize_new_api_response(json_data)
-        
+    is_new = is_new_api_response(json_data)
     result = json_data.get("result", [])
     data_dict = {}
 
     for metric in result:
         metric_id = metric["metricId"]
         for entry in metric["data"]:
-            method_name = entry["dimensionMap"]["dt.entity.service_method.name"]
-            value = entry["values"][0]
-            print(f"📛 Metric ID: {metric_id} → Method: {method_name} → Value: {value}")
-            if method_name not in data_dict:
-                data_dict[method_name] = {}
+            method_name = (
+                entry["dimensionMap"].get("dt.entity.service_method.name") if not is_new
+                else entry["dimensionMap"].get("Dimension")
+                method_name = method_name.strip() if method_name else "unknown"
             
-            if "count.total" in metric_id or "total_count" in metric_id:
-                data_dict[method_name]["total_hits"] = int(value)
-            elif "errors.server.count" in metric_id or "failed_req" in metric_id:
-                data_dict[method_name]["failure_count"] = int(value)
-            elif ":avg" in metric_id or "avg_responsetime" in metric_id:
-                data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
-            elif "percentile(90.0)" in metric_id:
-                data_dict[method_name]["p90"] = round(value / 1_000_000, 2)
-            elif "percentile(95.0)" in metric_id:
-                data_dict[method_name]["p95"] = round(value / 1_000_000, 2)
-            elif "percentile(99.0)" in metric_id:
-                data_dict[method_name]["p99"] = round(value / 1_000_000, 2)
-            elif "errors.server.rate" in metric_id:
-                data_dict[method_name]["failure_rate"] = round(value, 2)
+            
+            value = entry["values"][0]
+
+            if is_new:
+                if metric_id.startswith("calc:service.portfoliotrackcontroller_total_count"):
+                    data_dict[method_name]["total_hits"] = int(value)
+                elif metric_id.startswith("calc:service.portfoliotrackcontroller_failed_req"):
+                    data_dict[method_name]["failure_count"] = int(value)
+                elif metric_id.startswith("calc:service.portfoliotrackcontroller_avg_responsetime"):
+                    data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
+            else:
+                if "count.total" in metric_id:
+                    data_dict[method_name]["total_hits"] = int(value)
+                elif "errors.server.count" in metric_id:
+                    data_dict[method_name]["failure_count"] = int(value)
+                elif ":avg" in metric_id:
+                    data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
+                    
 
     records = []
-    print(f"\n📦 Final data_dict for {controller_name}:")
-    for method, vals in data_dict.items():
-         print(f"🔍 {method} → {vals}")
-
     for method, values in data_dict.items():
         records.append({
             "Date": yesterday_str,
@@ -166,8 +151,6 @@ def update_workbook(sheet_name, df_new):
         for name, df in all_sheets.items():
             df.to_excel(writer, sheet_name=name, index=False)
     print(f"✅ Sheet '{sheet_name}' updated with new data.")
-    print(f"🧾 Writing sheet '{sheet_name}' with columns: {df_new.columns.tolist()}")
-
     
 
 # 📧 Send Excel workbook via email
