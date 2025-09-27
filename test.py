@@ -92,9 +92,7 @@ def fetch_and_store_metrics(controller_name, url, api_token):
            else:
                method_name = entry["dimensionMap"].get("Dimension")
                method_name = method_name.strip() if method_name else "unknown"
-        
             value = entry["values"][0]
-
             if is_new:
                 if metric_id.startswith("calc:service.portfoliotrackcontroller_total_count"):
                     data_dict[method_name]["total_hits"] = int(value)
