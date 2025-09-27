@@ -74,47 +74,61 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         return
 
     json_data = response.json()
-    result = json_data.get("result", [])
-    data_dict = {}
+result = json_data.get("result", [])
+data_dict = {}
 
-    for metric in result:
-        metric_id = metric["metricId"]
-        for entry in metric["data"]:
-            method_name = entry["dimensionMap"]["dt.entity.service_method.name"]
-            value = entry["values"][0]
-            if method_name not in data_dict:
-                data_dict[method_name] = {}
-            if "count.total" in metric_id:
-                data_dict[method_name]["total_hits"] = int(value)
-            elif "errors.server.count" in metric_id:
-                data_dict[method_name]["failure_count"] = int(value)
-            elif ":avg" in metric_id:
-                data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
-            elif "percentile(90.0)" in metric_id:
-                data_dict[method_name]["p90"] = round(value / 1_000_000, 2)
-            elif "percentile(95.0)" in metric_id:
-                data_dict[method_name]["p95"] = round(value / 1_000_000, 2)
-            elif "percentile(99.0)" in metric_id:
-                data_dict[method_name]["p99"] = round(value / 1_000_000, 2)
-            elif "errors.server.rate" in metric_id:
-                data_dict[method_name]["failure_rate"] = round(value, 2)
+for metric in result:
+    metric_id = metric["metricId"]
+    for entry in metric["data"]:
+        dim_map = entry.get("dimensionMap", {})
 
-    records = []
-    for method, values in data_dict.items():
-        records.append({
-            "Date": yesterday_str,
-            "request": method,
-            "total hits": values.get("total_hits", 0),
-            "failure count": values.get("failure_count", 0),
-            "average": values.get("avg", 0),
-            "p90": values.get("p90", 0),
-            "p95": values.get("p95", 0),
-            "p99": values.get("p99", 0),
-            "failure rate": values.get("failure_rate", 0)
-        })
+        # ✅ Handle both old and new API formats
+        if "dt.entity.service_method.name" in dim_map:
+            method_name = dim_map["dt.entity.service_method.name"]   # old API
+        elif "Dimension" in dim_map:
+            method_name = dim_map["Dimension"]                      # new API
+        else:
+            # fallback: take first item from "dimensions" list if available
+            method_name = entry["dimensions"][0] if entry.get("dimensions") else "unknown"
 
-    df = pd.DataFrame(records)
-    update_workbook(sheet_name, df)
+        value = entry["values"][0]
+
+        if method_name not in data_dict:
+            data_dict[method_name] = {}
+
+        if "count.total" in metric_id:
+            data_dict[method_name]["total_hits"] = int(value)
+        elif "errors.server.count" in metric_id:
+            data_dict[method_name]["failure_count"] = int(value)
+        elif ":avg" in metric_id:
+            data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
+        elif "percentile(90.0)" in metric_id:
+            data_dict[method_name]["p90"] = round(value / 1_000_000, 2)
+        elif "percentile(95.0)" in metric_id:
+            data_dict[method_name]["p95"] = round(value / 1_000_000, 2)
+        elif "percentile(99.0)" in metric_id:
+            data_dict[method_name]["p99"] = round(value / 1_000_000, 2)
+        elif "errors.server.rate" in metric_id:
+            data_dict[method_name]["failure_rate"] = round(value, 2)
+
+# build dataframe
+records = []
+for method, values in data_dict.items():
+    records.append({
+        "Date": yesterday_str,
+        "request": method,
+        "total hits": values.get("total_hits", 0),
+        "failure count": values.get("failure_count", 0),
+        "average": values.get("avg", 0),
+        "p90": values.get("p90", 0),
+        "p95": values.get("p95", 0),
+        "p99": values.get("p99", 0),
+        "failure rate": values.get("failure_rate", 0)
+    })
+
+df = pd.DataFrame(records)
+update_workbook(sheet_name, df)
+
 
 # 📘 Combine data into Excel, preserving all sheets
 def update_workbook(sheet_name, df_new):
