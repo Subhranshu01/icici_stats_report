@@ -91,6 +91,7 @@ def fetch_and_store_metrics(controller_name, url, api_token):
                 entry["dimensionMap"].get("dt.entity.service_method.name") if not is_new
                 else entry["dimensionMap"].get("Dimension")
                 method_name = method_name.strip() if method_name else "unknown"
+            )
             
             
             value = entry["values"][0]
