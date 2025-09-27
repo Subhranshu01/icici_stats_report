@@ -4,39 +4,67 @@ import pandas as pd
 from datetime import datetime, timedelta
 from openpyxl import load_workbook
 import smtplib
+from datetime import datetime, timedelta
 import pytz
 from email.message import EmailMessage
 from openpyxl.styles import Alignment, PatternFill
 
 india_tz = pytz.timezone("Asia/Kolkata")
 now_ist = datetime.now(india_tz)
+# File names
 FILE_NAME = "Product Category wise Internal APIs Performance Report.xlsx"
+
+
+def normalize_new_api_response(json_data):
+    for metric in json_data.get("result", []):
+        for entry in metric.get("data", []):
+            dim_map = entry.get("dimensionMap", {})
+            if "Dimension" in dim_map:
+                method_name = dim_map["Dimension"]
+                dim_map["dt.entity.service_method.name"] = method_name
+                entry["dimensionMap"] = dim_map
+    return json_data
+    
+def is_new_api_response(json_data):
+    return any(
+        "Dimension" in entry.get("dimensionMap", {})
+        for metric in json_data.get("result", [])
+        for entry in metric.get("data", [])
+    )
+
 
 def apply_formatting(file_path):
     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
     wb = load_workbook(file_path)
 
     for sheet in wb.worksheets:
+        # Map headers to column indices
         header_row = next(sheet.iter_rows(min_row=1, max_row=1))
         col_map = {cell.value: cell.column for cell in header_row}
 
-        for row in sheet.iter_rows(min_row=2):
+        for row in sheet.iter_rows(min_row=2):  # Skip header
             for cell in row:
                 if cell.value is not None:
+                    # Apply center alignment
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
 
+            # 🔴 Apply highlighting based on thresholds
+            # p90
             cell_p90 = row[col_map.get("p90") - 1]
             if isinstance(cell_p90.value, (int, float)) and cell_p90.value > 3:
                 cell_p90.fill = red_fill
 
+            # p95
             cell_p95 = row[col_map.get("p95") - 1]
             if isinstance(cell_p95.value, (int, float)) and cell_p95.value > 3:
                 cell_p95.fill = red_fill
 
+            # failure rate
             cell_fr = row[col_map.get("failure rate") - 1]
             if isinstance(cell_fr.value, (int, float)) and cell_fr.value > 10:
                 cell_fr.fill = red_fill
 
+        # 📏 Auto-fit column widths
         for col in sheet.columns:
             max_length = max((len(str(cell.value)) if cell.value else 0) for cell in col)
             adjusted_width = max_length + 2
@@ -46,6 +74,8 @@ def apply_formatting(file_path):
     wb.save(file_path)
     print("🎨 Formatting + 🔴 highlights applied to all sheets.")
 
+
+# 📊 Fetch Dynatrace metrics and update sheet
 def fetch_and_store_metrics(controller_name, url, api_token):
     yesterday_str = (now_ist - timedelta(days=1)).strftime("%Y-%m-%d")
     sheet_name = controller_name
@@ -61,33 +91,26 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         return
 
     json_data = response.json()
+    if is_new_api_response(json_data):
+    print(f"🧪 Detected new API schema for {controller_name}, normalizing...")
+    json_data = normalize_new_api_response(json_data)
     result = json_data.get("result", [])
     data_dict = {}
 
     for metric in result:
-        metric_id = metric.get("metricId", "")
-        print(f"\n🔍 Processing Metric ID: {metric_id}")
-        for entry in metric.get("data", []):
-            dimension_map = entry.get("dimensionMap", {})
-            method_name = (
-                dimension_map.get("dt.entity.service_method.name") or
-                dimension_map.get("Dimension") or
-                "unknown_method"
-            )
-
-            value = entry.get("values", [0])[0]
-            print(f"📛 Method: {method_name} | Value: {value}")
-            data_dict.setdefault(method_name, {})
-
+        metric_id = metric["metricId"]
+        for entry in metric["data"]:
+            method_name = entry["dimensionMap"]["dt.entity.service_method.name"]
+            value = entry["values"][0]
+            if method_name not in data_dict:
+                data_dict[method_name] = {}
+            
             if "count.total" in metric_id or "total_count" in metric_id:
                 data_dict[method_name]["total_hits"] = int(value)
-                print(f"✅ total_hits assigned for {method_name}")
             elif "errors.server.count" in metric_id or "failed_req" in metric_id:
                 data_dict[method_name]["failure_count"] = int(value)
-                print(f"✅ failure_count assigned for {method_name}")
-            elif ":avg" in metric_id or "avg_responsetime" in metric_id:
+            elif ":avg" in metric_id:
                 data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
-                print(f"✅ average assigned for {method_name}")
             elif "percentile(90.0)" in metric_id:
                 data_dict[method_name]["p90"] = round(value / 1_000_000, 2)
             elif "percentile(95.0)" in metric_id:
@@ -99,13 +122,6 @@ def fetch_and_store_metrics(controller_name, url, api_token):
 
     records = []
     for method, values in data_dict.items():
-        if "total_hits" not in values:
-            print(f"⚠️ total_hits missing for {method}, defaulting to 0")
-        if "failure_count" not in values:
-            print(f"⚠️ failure_count missing for {method}, defaulting to 0")
-        if "avg" not in values:
-            print(f"⚠️ average missing for {method}, defaulting to 0")
-        
         records.append({
             "Date": yesterday_str,
             "request": method,
@@ -119,10 +135,9 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         })
 
     df = pd.DataFrame(records)
-    print("📊 Final DataFrame:")
-    print(df.head())
     update_workbook(sheet_name, df)
 
+# 📘 Combine data into Excel, preserving all sheets
 def update_workbook(sheet_name, df_new):
     all_sheets = {}
 
@@ -145,7 +160,9 @@ def update_workbook(sheet_name, df_new):
         for name, df in all_sheets.items():
             df.to_excel(writer, sheet_name=name, index=False)
     print(f"✅ Sheet '{sheet_name}' updated with new data.")
+    
 
+# 📧 Send Excel workbook via email
 def send_email_report():
     EMAIL_USER = os.environ["EMAIL_USER"]
     EMAIL_PASS = os.environ["EMAIL_PASS"]
@@ -157,7 +174,7 @@ def send_email_report():
     msg["Subject"] = "📊 Dynatrace Metrics Report"
     msg["From"] = EMAIL_USER
     msg["To"] = TO_EMAIL
-    msg.set_content("Hi,\n\nAttached is the updated Product Category wise Internal APIs Performance Report.\n\nRegards,\nSubhranshu")
+    msg.set_content("Hi,\n\nAttached is the updated Product Category wise Internal APIs Performance Report .\n\nRegards,\nSubhranshu")
 
     with open(FILE_NAME, "rb") as f:
         msg.add_attachment(
@@ -176,6 +193,7 @@ def send_email_report():
     except Exception as e:
         print("❌ Email sending failed:", e)
 
+# 🏁 Entry point
 if __name__ == "__main__":
     API_TOKEN = os.environ["API_TOKEN"]
     LoginController_url = os.environ["LOGINCONTROLLER_URL"]
@@ -195,6 +213,8 @@ if __name__ == "__main__":
     PortfolioTrack_url = os.environ["PORTFOLIO_URL"]
     SpendTrack_url = os.environ["SPENDTRACK_URL"]
 
+    
+
     fetch_and_store_metrics("LoginController", LoginController_url, API_TOKEN)
     fetch_and_store_metrics("MotorInsurance", MotorInsurance_url, API_TOKEN)
     fetch_and_store_metrics("CreditTrack", CreditTrack_url, API_TOKEN)
@@ -211,12 +231,6 @@ if __name__ == "__main__":
     fetch_and_store_metrics("Home Loan", HomeLoan_url, API_TOKEN)
     fetch_and_store_metrics("PortfolioTrack", PortfolioTrack_url, API_TOKEN)
     fetch_and_store_metrics("SpendTrack", SpendTrack_url, API_TOKEN)
-    
+
     apply_formatting(FILE_NAME)
     send_email_report()
-
-
-
-
-
-
