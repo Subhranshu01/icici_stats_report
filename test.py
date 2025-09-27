@@ -66,6 +66,7 @@ def fetch_and_store_metrics(controller_name, url, api_token):
 
     for metric in result:
         metric_id = metric.get("metricId", "")
+        print(f"\n🔍 Processing Metric ID: {metric_id}")
         for entry in metric.get("data", []):
             dimension_map = entry.get("dimensionMap", {})
             method_name = (
@@ -75,15 +76,19 @@ def fetch_and_store_metrics(controller_name, url, api_token):
             )
 
             value = entry.get("values", [0])[0]
+            print(f"📛 Method: {method_name} | Value: {value}")
             if method_name not in data_dict:
                 data_dict[method_name] = {}
 
             if "count.total" in metric_id or "total_count" in metric_id:
                 data_dict[method_name]["total_hits"] = int(value)
-            elif "errors.server.count" in metric_id:
+                print(f"✅ total_hits assigned for {method_name}")
+            elif "errors.server.count" in metric_id or "failed_req" in metric_id:
                 data_dict[method_name]["failure_count"] = int(value)
-            elif ":avg" in metric_id or "response.time.avg" in metric_id:
+                print(f"✅ failure_count assigned for {method_name}")
+            elif ":avg" in metric_id or "avg_responsetime" in metric_id:
                 data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
+                print(f"✅ average assigned for {method_name}")
             elif "percentile(90.0)" in metric_id:
                 data_dict[method_name]["p90"] = round(value / 1_000_000, 2)
             elif "percentile(95.0)" in metric_id:
@@ -95,6 +100,12 @@ def fetch_and_store_metrics(controller_name, url, api_token):
 
     records = []
     for method, values in data_dict.items():
+        if "total_hits" not in values:
+            print(f"⚠️ total_hits missing for {method}, defaulting to 0")
+        if "failure_count" not in values:
+            print(f"⚠️ failure_count missing for {method}, defaulting to 0")
+         if "avg" not in values:
+             print(f"⚠️ average missing for {method}, defaulting to 0")
         records.append({
             "Date": yesterday_str,
             "request": method,
