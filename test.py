@@ -56,17 +56,19 @@ def apply_formatting(file_path):
 
     wb.save(file_path)
     print("🎨 Formatting + 🔴 highlights applied to all sheets.")
+import requests
+import pandas as pd
+from datetime import datetime, timedelta
 
-
-# 📊 Fetch Dynatrace metrics and update sheet
 def fetch_and_store_metrics(controller_name, url, api_token):
-    yesterday_str = (now_ist - timedelta(days=1)).strftime("%Y-%m-%d")
+    yesterday_str = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     sheet_name = controller_name
 
     headers = {
         "Authorization": f"Api-Token {api_token}",
         "accept": "application/json"
     }
+
     response = requests.get(url, headers=headers)
     print(f"📡 {controller_name}: Status Code {response.status_code}")
     if response.status_code != 200:
@@ -78,39 +80,40 @@ def fetch_and_store_metrics(controller_name, url, api_token):
     data_dict = {}
 
     for metric in result:
-        metric_id = metric["metricId"]
+        metric_id = metric.get("metricId", "")
         for entry in metric.get("data", []):
-            dim_map = entry.get("dimensionMap", {})
-
-            # ✅ Handle both old & new schema
-            if "dt.entity.service_method.name" in dim_map:
-                method_name = dim_map["dt.entity.service_method.name"]   # old schema
-            elif "Dimension" in dim_map:
-                method_name = dim_map["Dimension"]                      # new schema
-            else:
-                method_name = entry["dimensions"][0] if entry.get("dimensions") else "unknown"
-
-            value = entry["values"][0]
+            method_name = entry.get("dimensionMap", {}).get("dt.entity.service_method.name", "unknown_method")
+            value = entry.get("values", [0])[0]  # default 0 if values list is empty
 
             if method_name not in data_dict:
                 data_dict[method_name] = {}
 
-            if "count.total" in metric_id:
+            # --- Total Hits ---
+            if ("count.total" in metric_id) or ("_total_count" in metric_id):
                 data_dict[method_name]["total_hits"] = int(value)
-            elif "errors.server.count" in metric_id:
+
+            # --- Failure Count ---
+            elif ("errors.server.count" in metric_id) or ("failed_req" in metric_id):
                 data_dict[method_name]["failure_count"] = int(value)
-            elif ":avg" in metric_id:
-                data_dict[method_name]["avg"] = round(value / 1_000_000, 2)
+
+            # --- Average Response Time ---
+            elif (":avg" in metric_id) or ("avg_responsetime" in metric_id):
+                # assuming ms, convert to seconds if value seems too large
+                data_dict[method_name]["avg"] = round(value / 1_000_000, 2) if value > 10000 else round(value, 2)
+
+            # --- Percentiles ---
             elif "percentile(90.0)" in metric_id:
                 data_dict[method_name]["p90"] = round(value / 1_000_000, 2)
             elif "percentile(95.0)" in metric_id:
                 data_dict[method_name]["p95"] = round(value / 1_000_000, 2)
             elif "percentile(99.0)" in metric_id:
                 data_dict[method_name]["p99"] = round(value / 1_000_000, 2)
+
+            # --- Failure Rate ---
             elif "errors.server.rate" in metric_id:
                 data_dict[method_name]["failure_rate"] = round(value, 2)
 
-    # build dataframe rows
+    # Prepare DataFrame
     records = []
     for method, values in data_dict.items():
         records.append({
