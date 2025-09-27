@@ -122,6 +122,10 @@ def fetch_and_store_metrics(controller_name, url, api_token):
                 data_dict[method_name]["failure_rate"] = round(value, 2)
 
     records = []
+    print(f"\n📦 Final data_dict for {controller_name}:")
+    for method, vals in data_dict.items():
+         print(f"🔍 {method} → {vals}")
+
     for method, values in data_dict.items():
         records.append({
             "Date": yesterday_str,
@@ -161,6 +165,8 @@ def update_workbook(sheet_name, df_new):
         for name, df in all_sheets.items():
             df.to_excel(writer, sheet_name=name, index=False)
     print(f"✅ Sheet '{sheet_name}' updated with new data.")
+    print(f"🧾 Writing sheet '{sheet_name}' with columns: {df_new.columns.tolist()}")
+
     
 
 # 📧 Send Excel workbook via email
