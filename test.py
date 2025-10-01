@@ -191,7 +191,7 @@ if __name__ == "__main__":
     HomeLoan_url = os.environ["HOMELOAN_URL"]
     PortfolioTrack_url = os.environ["PORTFOLIO_URL"]
     SpendTrack_url = os.environ["SPENDTRACK_URL"]
-    LeadToLogin_url = os.environ["L2L"]
+    LeadToLogin_url = os.environ["L2L_URL"]
 
     
 
