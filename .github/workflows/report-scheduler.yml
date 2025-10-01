@@ -63,6 +63,7 @@ jobs:
           HOMELOAN_URL: ${{ secrets.HOMELOAN_URL }}
           PORTFOLIO_URL: ${{ secrets.PORTFOLIO_URL }}
           SPENDTRACK_URL: ${{ secrets.SPENDTRACK_URL }}
+          L2L_URL: ${{ secrets.L2L_URL }}
           
         run: python test.py  # or python dynatrace_report.py
 
