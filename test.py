@@ -153,7 +153,7 @@ def send_email_report():
     msg["Subject"] = "📊 Dynatrace Metrics Report"
     msg["From"] = EMAIL_USER
     msg["To"] = TO_EMAIL
-    msg.set_content("Hi,\n\nAttached is the updated product wise report for october month .\n\nRegards,\nSubhranshu")
+    msg.set_content("Hi,\n\nAttached is the updated product wise report for November month .\n\nRegards,\nSubhranshu")
 
     with open(FILE_NAME, "rb") as f:
         msg.add_attachment(
@@ -192,6 +192,8 @@ if __name__ == "__main__":
     PortfolioTrack_url = os.environ["PORTFOLIO_URL"]
     SpendTrack_url = os.environ["SPENDTRACK_URL"]
     LeadToLogin_url = os.environ["L2L_URL"]
+    Travel_url = os.environ["TRAVEL_URL"]
+    Pocket_url = os.environ["POCKET_URL"]
 
     
 
@@ -212,6 +214,8 @@ if __name__ == "__main__":
     fetch_and_store_metrics("PortfolioTrack", PortfolioTrack_url, API_TOKEN)
     fetch_and_store_metrics("SpendTrack", SpendTrack_url, API_TOKEN)
     fetch_and_store_metrics("LeadToLogin", LeadToLogin_url, API_TOKEN)
+    fetch_and_store_metrics("Travel Insurance", Travel_url, API_TOKEN)
+    fetch_and_store_metrics("Pocket Insurance", Pocket_url, API_TOKEN)
 
     apply_formatting(FILE_NAME)
     send_email_report()
