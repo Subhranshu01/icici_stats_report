@@ -191,6 +191,8 @@ if __name__ == "__main__":
     LeadToLogin_url = os.environ["L2L_URL"]
     Travel_url = os.environ["TRAVEL_URL"]
     Pocket_url = os.environ["POCKET_URL"]
+    Dha_url = os.environ["DHA_URL"]
+    Vehicle_url = os.environ["VEHICLE_URL"]
 
     
 
@@ -213,6 +215,8 @@ if __name__ == "__main__":
     fetch_and_store_metrics("LeadToLogin", LeadToLogin_url, API_TOKEN)
     fetch_and_store_metrics("Travel Insurance", Travel_url, API_TOKEN)
     fetch_and_store_metrics("Pocket Insurance", Pocket_url, API_TOKEN)
+    fetch_and_store_metrics("DHA", Dha_url, API_TOKEN)
+    fetch_and_store_metrics("Vehicle Track", Vehicle_url, API_TOKEN)
 
     apply_formatting(FILE_NAME)
     send_email_report()
