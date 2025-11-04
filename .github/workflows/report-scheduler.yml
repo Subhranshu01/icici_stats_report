@@ -65,7 +65,7 @@ jobs:
           SPENDTRACK_URL: ${{ secrets.SPENDTRACK_URL }}
           L2L_URL: ${{ secrets.L2L_URL }}
           TRAVEL_URL: ${{ secrets.TRAVEL_URL }}
-          POCKET_URL: ${{ secrets.POCKET }}
+          POCKET_URL: ${{ secrets.POCKET_URL }}
           
         run: python test.py  # or python dynatrace_report.py
 
