@@ -66,7 +66,8 @@ jobs:
           L2L_URL: ${{ secrets.L2L_URL }}
           TRAVEL_URL: ${{ secrets.TRAVEL_URL }}
           POCKET_URL: ${{ secrets.POCKET_URL }}
-          
+          DHA_URL: ${{ secrets.DHA_URL }}
+          VEHICLE_URL: ${{ secrets.VEHICLE_URL }}
         run: python test.py  # or python dynatrace_report.py
 
       - name: Commit updated workbook to reports branch
