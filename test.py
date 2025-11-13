@@ -193,6 +193,7 @@ if __name__ == "__main__":
     Pocket_url = os.environ["POCKET_URL"]
     Dha_url = os.environ["DHA_URL"]
     Vehicle_url = os.environ["VEHICLE_URL"]
+    SimpliInvest_url = os.environ["SIMPLY_URL"]
 
     
 
@@ -217,6 +218,7 @@ if __name__ == "__main__":
     fetch_and_store_metrics("Pocket Insurance", Pocket_url, API_TOKEN)
     fetch_and_store_metrics("DHA", Dha_url, API_TOKEN)
     fetch_and_store_metrics("Vehicle Track", Vehicle_url, API_TOKEN)
+    fetch_and_store_metrics("Simpli Invest", SimpliInvest_url, API_TOKEN)
 
     apply_formatting(FILE_NAME)
     send_email_report()
