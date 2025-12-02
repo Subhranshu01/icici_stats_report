@@ -194,6 +194,7 @@ if __name__ == "__main__":
     Dha_url = os.environ["DHA_URL"]
     Vehicle_url = os.environ["VEHICLE_URL"]
     SimpliInvest_url = os.environ["SIMPLY_URL"]
+    AI_url = os.environ["AI_URL"]
 
     
 
@@ -219,6 +220,7 @@ if __name__ == "__main__":
     fetch_and_store_metrics("DHA", Dha_url, API_TOKEN)
     fetch_and_store_metrics("Vehicle Track", Vehicle_url, API_TOKEN)
     fetch_and_store_metrics("Simpli Invest", SimpliInvest_url, API_TOKEN)
+    fetch_and_store_metrics("AI Finance", AI_url, API_TOKEN)
 
     apply_formatting(FILE_NAME)
     send_email_report()
