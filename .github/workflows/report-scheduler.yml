@@ -70,6 +70,7 @@ jobs:
           VEHICLE_URL: ${{ secrets.VEHICLE_URL }}
           SIMPLY_URL: ${{ secrets.SIMPLY_URL }}
           AI_URL: ${{ secrets.AI_URL }}
+          HSC_URL: ${{ secrets.HSC_URL }}
         run: python test.py  # or python dynatrace_report.py
 
       - name: Commit updated workbook to reports branch
