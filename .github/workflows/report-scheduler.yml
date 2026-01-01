@@ -53,7 +53,6 @@ jobs:
           DIGIGOLD_URL: ${{ secrets.DIGIGOLD_URL }}
           HEALTHINSURANCE_URL: ${{ secrets.HEALTHINSURANCE_URL }}
           LRREWARDS_URL: ${{ secrets.LRREWARDS_URL }}
-          PERSONALLOAN_URL: ${{ secrets.PERSONALLOAN_URL }}
           MUTUALFUND_URL: ${{ secrets.MUTUALFUND_URL }}
           FIXEDDEPOSIT_URL: ${{ secrets.FIXEDDEPOSIT_URL }}
           BLOAN_URL: ${{ secrets.BLOAN_URL }}
