@@ -178,7 +178,6 @@ if __name__ == "__main__":
     Digigold_url = os.environ["DIGIGOLD_URL"]
     HealthInsurance_url = os.environ["HEALTHINSURANCE_URL"]
     LrRewards_url = os.environ["LRREWARDS_URL"]
-    PersonalLoan_url = os.environ["PERSONALLOAN_URL"]
     MutualFund_url = os.environ["MUTUALFUND_URL"]
     FixedDeposit_url = os.environ["FIXEDDEPOSIT_URL"]
     BusinessLoanController_url = os.environ["BLOAN_URL"]
@@ -205,7 +204,6 @@ if __name__ == "__main__":
     fetch_and_store_metrics("DigiGold & Silver", Digigold_url, API_TOKEN)
     fetch_and_store_metrics("HealthInsurance", HealthInsurance_url, API_TOKEN)
     fetch_and_store_metrics("LR Rewards", LrRewards_url, API_TOKEN)
-    fetch_and_store_metrics("Personal Loan", PersonalLoan_url, API_TOKEN)
     fetch_and_store_metrics("MutualFund", MutualFund_url, API_TOKEN)
     fetch_and_store_metrics("Fixed Deposit", FixedDeposit_url, API_TOKEN)
     fetch_and_store_metrics("BusinessLoanController", BusinessLoanController_url, API_TOKEN)
@@ -215,7 +213,7 @@ if __name__ == "__main__":
     fetch_and_store_metrics("Home Loan", HomeLoan_url, API_TOKEN)
     fetch_and_store_metrics("PortfolioTrack", PortfolioTrack_url, API_TOKEN)
     fetch_and_store_metrics("SpendTrack", SpendTrack_url, API_TOKEN)
-    fetch_and_store_metrics("LeadToLogin", LeadToLogin_url, API_TOKEN)
+    fetch_and_store_metrics("Personal Loan", LeadToLogin_url, API_TOKEN)
     fetch_and_store_metrics("Travel Insurance", Travel_url, API_TOKEN)
     fetch_and_store_metrics("Pocket Insurance", Pocket_url, API_TOKEN)
     fetch_and_store_metrics("DHA", Dha_url, API_TOKEN)
