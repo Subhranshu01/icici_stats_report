@@ -147,10 +147,10 @@ def send_email_report():
     TO_EMAIL = os.environ["EMAIL_TO"]
 
     msg = EmailMessage()
-    msg["Subject"] = "📊 Dynatrace Metrics Report"
+    msg["Subject"] = "Product wise report"
     msg["From"] = EMAIL_USER
     msg["To"] = TO_EMAIL
-    msg.set_content("Hi,\n\nAttached is the updated product wise report for November month .\n\nRegards,\nSubhranshu")
+    msg.set_content("Hi,\n\nAttached is the updated product wise report for Feb month .\n\nRegards,\nSubhranshu")
 
     with open(FILE_NAME, "rb") as f:
         msg.add_attachment(
