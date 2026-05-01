@@ -67,7 +67,7 @@ def fetch_and_store_metrics(controller_name, url, api_token):
         "Authorization": f"Api-Token {api_token}",
         "accept": "application/json"
     }
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, verify=False)
     print(f"📡 {controller_name}: Status Code {response.status_code}")
     if response.status_code != 200:
         print("❌ Error:", response.text)
