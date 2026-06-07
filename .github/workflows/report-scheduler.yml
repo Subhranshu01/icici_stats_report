@@ -2,8 +2,8 @@
 name: Send Daily Dynatrace Report
 
 on:
-  schedule:
-    - cron: '35 18 * * *'
+  # schedule:
+    # - cron: '35 18 * * *'
   workflow_dispatch:
 
 jobs:
